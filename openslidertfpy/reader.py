@@ -83,7 +83,7 @@ class MicroImageReader(object):
             num_worker: int = 4,
             fifo_queue_capacity: int = 20000,
             batch_size: int = 100,
-            verbose: bool = True
+            verbose: bool = False
     ):
         self.num_channel = 3
         self.image_width = image_width

@@ -29,6 +29,7 @@ tmp/
 
 # Secret file
 *.secret
+*.pickle
 
 
 # mypy
