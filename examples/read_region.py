@@ -15,8 +15,10 @@
 import os
 
 import tensorflow as tf
+import numpy as np
+from PIL import Image
 
-import openslidertfpy.reader as reader
+from openslidertfpy import MicroImageReader, is_mock
 
 
 FILE_PATH = "/home/yota/DataForML/svs/aiba.svs"
@@ -25,13 +27,14 @@ assert os.path.isfile(FILE_PATH)
 
 with tf.Graph().as_default():
     coord = tf.train.Coordinator()
-    runner = reader.MicroImageRunner(FILE_PATH, coord)
-    images, locs, levs = runner.get_inputs()  # Define images, x and y coordinates
+    runner = MicroImageReader(
+        FILE_PATH, coord, image_width=500, image_height=500
+    )
+    images, locs, levs = runner.get_inputs()
 
     results = list()
 
     with tf.Session() as sess:
-        # Some initialize function
         tf.train.start_queue_runners(sess)
         runner.start_thread(sess, [((0, 0), 2)])
 
@@ -39,6 +42,10 @@ with tf.Graph().as_default():
             imgs, ls, vs = sess.run([images, locs, levs])
             results.extend([
                 i for i, lo, lv in zip(imgs, ls, vs)
-                if not reader.is_mock(lo, lv)
+                if not is_mock(lo, lv)
             ])
-    print(len(results))
+
+    # Show the result
+    loaded_image_array = results[0]
+    loaded_image = Image.fromarray(loaded_image_array.astype(np.uint8))
+    loaded_image.show()
