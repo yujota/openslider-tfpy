@@ -23,6 +23,7 @@ dist
 *.png
 *.pickle
 
+!docs/*.png
 # Test cache
 .cache/
 tmp/
