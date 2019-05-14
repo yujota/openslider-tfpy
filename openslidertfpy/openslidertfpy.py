@@ -14,9 +14,15 @@
 #   limitations under the License.
 """TensorFlow Custom runner to produce micro images from pathology file
 
+Please note that the last batch may have mock data to pad batch size.
+The `level` of mock data is -1.
+
+
 Usage:
 
 import tensorflow as tf
+
+from openslidertfpy import MicroPatchReader
 
 
 openslide_read_region_params = [
@@ -28,23 +34,22 @@ image_width, image_height = 128, 128
 
 with tf.Graph().as_default():
     coordinator = tf.train.Coordinator()
-    runner = MicroImageReader(
+    reader = MicroPatchReader(
         "sample.svs", coordinator, image_width, image_height
     )
-    images, locations_batch, levels_batch = runner.get_inputs()
+    images, locations_batch, levels_batch = reader.get_inputs()
     # Define images, openslide's read_region function parameters
 
-    results = some_op(images)
+    results = some_op(images)  # Place your ML model here
 
     with tf.Session() as sess:
 
         # Some function to initialize values should be placed here
 
         # Start reading pathology images
-        tf.train.start_queue_runners(sess)
-        runner.start_thread(sess)
-        while not coord.should_stop():
-            actual_results, locs, levs = sess.run(
+        runner.start_thread(openslide_read_region_params)
+        while not coordinator.should_stop():
+            actual_results, actual_locations, actual_levels = sess.run(
                 [results, locations_batch, levels_batch]
             )
 """
@@ -72,7 +77,7 @@ if typing.TYPE_CHECKING:
     LevelBatchPlaceholder = tensorflow.python.framework.ops.Tensor
 
 
-class MicroImageReader(object):
+class MicroPatchReader(object):
 
     def __init__(
             self,
@@ -114,10 +119,12 @@ class MicroImageReader(object):
 
     def start_thread(
             self,
-            sess: 'TfSession',
-            read_region_parameters: typing.Iterable['ReadRegionParam']
+            read_region_parameters: typing.Iterable['ReadRegionParam'],
+            sess: typing.Union[None, 'TfSession'] = None
     ) -> None:
-        """Start enqeue operation and reading file"""
+        """Start enqueue operation and reading file"""
+        if sess is None:
+            sess = tf.get_default_session()
         for p in read_region_parameters:
             self.read_region_queue.put(p)
         if self.verbose:
@@ -128,7 +135,7 @@ class MicroImageReader(object):
             )
             t.start()
         t = threading.Thread(
-            target=self._finish_enqeue, args=(sess, )
+            target=self._finish_enqueue, args=(sess, )
         )
         t.start()
 
@@ -153,7 +160,7 @@ class MicroImageReader(object):
             self.level_placeholder: level,
         })
 
-    def _finish_enqeue(self, sess):
+    def _finish_enqueue(self, sess):
         self.read_region_queue.join()
         if self.verbose:
             print("Remaining...", sess.run(self.queue.size()))
@@ -179,7 +186,11 @@ class MicroImageReader(object):
             'LocationBatchPlaceholder',
             'LevelBatchPlaceholder'
     ]:
-        """Return tensor op of images, locations and levels"""
+        """Return tensor op of images, locations and levels
+
+        Please note that the last batch may have mock data to pad batch size.
+        The `level` of mock data is -1.
+        """
         images_batch, locations_batch, levels_batch = \
             self.queue.dequeue_many(self.batch_size)
         return images_batch, locations_batch, levels_batch

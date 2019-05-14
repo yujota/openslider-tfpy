@@ -18,17 +18,17 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-from openslidertfpy import MicroImageReader, is_mock
+from openslidertfpy import MicroPatchReader, is_mock
 
 
-FILE_PATH = "/home/yota/DataForML/svs/aiba.svs"
+FILE_PATH = "/path/to/wsi/file.svs"
 assert os.path.isfile(FILE_PATH)
 
 
 with tf.Graph().as_default():
-    coord = tf.train.Coordinator()
-    runner = MicroImageReader(
-        FILE_PATH, coord, image_width=500, image_height=500
+    read_patch_coordinator = tf.train.Coordinator()
+    runner = MicroPatchReader(
+        FILE_PATH, read_patch_coordinator, image_width=500, image_height=500
     )
     images, locs, levs = runner.get_inputs()
 
@@ -36,9 +36,9 @@ with tf.Graph().as_default():
 
     with tf.Session() as sess:
         tf.train.start_queue_runners(sess)
-        runner.start_thread(sess, [((0, 0), 2)])
+        runner.start_thread([((0, 0), 2)])
 
-        while not coord.should_stop():
+        while not read_patch_coordinator.should_stop():
             imgs, ls, vs = sess.run([images, locs, levs])
             results.extend([
                 i for i, lo, lv in zip(imgs, ls, vs)
