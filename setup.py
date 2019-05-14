@@ -20,8 +20,7 @@ from setuptools import setup, find_packages
 
 REQUIRED_PACKAGES = [
     "openslide-python",
-    'numpy',
-    'tensorflow==1.4.0',
+    'numpy'
 ]
 
 
