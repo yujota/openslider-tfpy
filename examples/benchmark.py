@@ -20,17 +20,17 @@ import pickle
 
 import tensorflow as tf
 
-from openslidertfpy import MicroImageReader
+from openslidertfpy import MicroPatchReader
 
 
-FILE_PATH = "/home/yota/DataForML/svs/aiba.svs"  # Place WSI path here
+FILE_PATH = "/path/to/wsi/file.svs"
 assert os.path.isfile(FILE_PATH)
 
 
 def run(read_region_params, width, height, num_worker=4, batch_size=100):
     with tf.Graph().as_default():
         coord = tf.train.Coordinator()
-        runner = MicroImageReader(
+        runner = MicroPatchReader(
             FILE_PATH,
             coord,
             image_width=width,
@@ -41,8 +41,7 @@ def run(read_region_params, width, height, num_worker=4, batch_size=100):
         images, _, _ = runner.get_inputs()
 
         with tf.Session() as sess:
-            tf.train.start_queue_runners(sess)
-            runner.start_thread(sess, read_region_params)
+            runner.start_thread(read_region_params)
 
             while not coord.should_stop():
                 sess.run([images])
